@@ -4,11 +4,8 @@ import styles from "./HistoryCard.module.css";
 const STORAGE_KEY = "clockCardData";
 
 const emptyData = {
-  status: "notStarted",
-  workStart: null,
-  pauseStart: null,
-  totalWorked: 0,
-  registrations: [],
+  currentDay: null,
+  history: [],
 };
 
 function getStoredData() {
@@ -19,7 +16,12 @@ function getStoredData() {
   }
 
   try {
-    return JSON.parse(saved);
+    const parsed = JSON.parse(saved);
+
+    return {
+      currentDay: parsed.currentDay || null,
+      history: parsed.history || [],
+    };
   } catch {
     return emptyData;
   }
@@ -28,17 +30,30 @@ function getStoredData() {
 function HistoryCard() {
   const [data, setData] = useState(getStoredData);
 
+  const [showHistory, setShowHistory] =
+    useState(false);
+
+  const [selectedDay, setSelectedDay] =
+    useState(null);
+
   useEffect(() => {
     function updateHistory() {
       setData(getStoredData());
     }
 
-    const interval = setInterval(updateHistory, 500);
+    const interval = setInterval(
+      updateHistory,
+      500
+    );
 
-    window.addEventListener("storage", updateHistory);
+    window.addEventListener(
+      "storage",
+      updateHistory
+    );
 
     return () => {
       clearInterval(interval);
+
       window.removeEventListener(
         "storage",
         updateHistory
@@ -47,6 +62,10 @@ function HistoryCard() {
   }, []);
 
   function formatTime(timestamp) {
+    if (!timestamp) {
+      return "--:--";
+    }
+
     return new Date(timestamp).toLocaleTimeString(
       "nb-NO",
       {
@@ -56,9 +75,41 @@ function HistoryCard() {
     );
   }
 
+  function formatDate(dateString) {
+    if (!dateString) {
+      return "";
+    }
+
+    const date = new Date(
+      `${dateString}T12:00:00`
+    );
+
+    return date.toLocaleDateString("nb-NO", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }
+
+  function formatShortDate(dateString) {
+    if (!dateString) {
+      return "";
+    }
+
+    const date = new Date(
+      `${dateString}T12:00:00`
+    );
+
+    return date.toLocaleDateString("nb-NO", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+
   function formatDuration(milliseconds) {
-    const totalSeconds = Math.floor(
-      milliseconds / 1000
+    const totalSeconds = Math.max(
+      0,
+      Math.floor(milliseconds / 1000)
     );
 
     const hours = Math.floor(
@@ -103,133 +154,467 @@ function HistoryCard() {
     return styles.workDot;
   }
 
-  const registrations = data.registrations || [];
+  function openHistory() {
+    setSelectedDay(null);
+    setShowHistory(true);
+  }
+
+  function closeHistory() {
+    setShowHistory(false);
+    setSelectedDay(null);
+  }
+
+  function selectDay(day) {
+    setSelectedDay(day);
+  }
+
+  function getHistoryDays() {
+    return [...data.history].sort(
+      (a, b) =>
+        new Date(b.date) -
+        new Date(a.date)
+    );
+  }
+
+  const currentDay = data.currentDay;
+
+  const registrations =
+    currentDay?.registrations || [];
+
+  const historyDays = getHistoryDays();
 
   return (
-    <section className={styles.card}>
-      {/* =========================
-          HEADER
-      ========================== */}
+    <>
+      <section className={styles.card}>
+        {/* =========================
+            HEADER
+        ========================== */}
 
-      <div className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>
-            Historikk
+        <div className={styles.header}>
+          <div>
+            <span className={styles.eyebrow}>
+              Historikk
+            </span>
+
+            <h2>I dag</h2>
+          </div>
+
+          <span className={styles.count}>
+            {registrations.length}
           </span>
-
-          <h2>I dag</h2>
         </div>
 
-        <span className={styles.count}>
-          {registrations.length}
-        </span>
-      </div>
+        {/* =========================
+            TOTAL
+        ========================== */}
 
-      {/* =========================
-          TOTAL ARBEIDSTID
-      ========================== */}
+        <div className={styles.totalSection}>
+          <span className={styles.totalLabel}>
+            Total arbeidstid
+          </span>
 
-      <div className={styles.totalSection}>
-        <span className={styles.totalLabel}>
-          Total arbeidstid
-        </span>
+          <span className={styles.totalTime}>
+            {formatDuration(
+              currentDay?.totalWorked || 0
+            )}
+          </span>
+        </div>
 
-        <span className={styles.totalTime}>
-          {formatDuration(
-            data.totalWorked || 0
-          )}
-        </span>
-      </div>
+        {/* =========================
+            TODAY
+        ========================== */}
 
-      {/* =========================
-          REGISTRERINGER
-      ========================== */}
+        <div className={styles.historySection}>
+          {registrations.length === 0 ? (
+            <div className={styles.empty}>
+              <div className={styles.emptyIcon}>
+                —
+              </div>
 
-      <div className={styles.historySection}>
-        {registrations.length === 0 ? (
-          <div className={styles.empty}>
-            <div className={styles.emptyIcon}>
-              —
+              <p>
+                Ingen registreringer ennå
+              </p>
+
+              <span>
+                Registreringene dine vises her.
+              </span>
             </div>
+          ) : (
+            <div className={styles.timeline}>
+              {registrations.map(
+                (registration, index) => {
+                  const timestamp =
+                    registration.time ||
+                    registration.start;
 
-            <p>
-              Ingen registreringer ennå
-            </p>
-
-            <span>
-              Registreringene dine vises her.
-            </span>
-          </div>
-        ) : (
-          <div className={styles.timeline}>
-            {registrations.map(
-              (registration, index) => {
-                const timestamp =
-                  registration.start ||
-                  registration.time;
-
-                return (
-                  <div
-                    className={styles.item}
-                    key={`${timestamp}-${index}`}
-                  >
+                  return (
                     <div
-                      className={
-                        styles.timelineLine
-                      }
-                    >
-                      <span
-                        className={`${styles.dot} ${getDotClass(
-                          registration
-                        )}`}
-                      />
-                    </div>
-
-                    <div
-                      className={styles.content}
+                      className={styles.item}
+                      key={`${timestamp}-${index}`}
                     >
                       <div
                         className={
-                          styles.itemTop
+                          styles.timelineLine
                         }
                       >
                         <span
-                          className={
-                            styles.itemTitle
-                          }
-                        >
-                          {getTitle(
+                          className={`${styles.dot} ${getDotClass(
                             registration
-                          )}
-                        </span>
-
-                        <span
-                          className={styles.time}
-                        >
-                          {formatTime(timestamp)}
-                        </span>
+                          )}`}
+                        />
                       </div>
 
-                      {registration.type ===
-                        "pause" &&
-                        registration.comment && (
-                          <p
+                      <div
+                        className={styles.content}
+                      >
+                        <div
+                          className={
+                            styles.itemTop
+                          }
+                        >
+                          <span
                             className={
-                              styles.comment
+                              styles.itemTitle
                             }
                           >
-                            {registration.comment}
-                          </p>
-                        )}
+                            {getTitle(
+                              registration
+                            )}
+                          </span>
+
+                          <span
+                            className={
+                              styles.time
+                            }
+                          >
+                            {formatTime(
+                              timestamp
+                            )}
+                          </span>
+                        </div>
+
+                        {registration.type ===
+                          "pause" &&
+                          registration.comment && (
+                            <p
+                              className={
+                                styles.comment
+                              }
+                            >
+                              {
+                                registration.comment
+                              }
+                            </p>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
+                }
+              )}
+            </div>
+          )}
+
+          {/* =========================
+              PREVIOUS DAYS BUTTON
+          ========================== */}
+
+          {historyDays.length > 0 && (
+            <button
+              className={
+                styles.historyButton
               }
+              type="button"
+              onClick={openHistory}
+            >
+              <span>
+                Tidligere dager
+              </span>
+
+              <span
+                className={
+                  styles.historyArrow
+                }
+              >
+                →
+              </span>
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* =========================
+          HISTORY POPUP
+      ========================== */}
+
+      {showHistory && (
+        <div
+          className={styles.popupOverlay}
+          onClick={closeHistory}
+        >
+          <div
+            className={styles.popup}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            {!selectedDay ? (
+              <>
+                <div
+                  className={
+                    styles.popupHeader
+                  }
+                >
+                  <span
+                    className={styles.eyebrow}
+                  >
+                    Historikk
+                  </span>
+
+                  <h2>
+                    Tidligere dager
+                  </h2>
+
+                  <p>
+                    Velg en arbeidsdag for å se
+                    registreringene.
+                  </p>
+                </div>
+
+                <div
+                  className={
+                    styles.dayList
+                  }
+                >
+                  {historyDays.map(
+                    (day) => (
+                      <button
+                        className={
+                          styles.dayButton
+                        }
+                        type="button"
+                        key={day.date}
+                        onClick={() =>
+                          selectDay(day)
+                        }
+                      >
+                        <div
+                          className={
+                            styles.dayInfo
+                          }
+                        >
+                          <span
+                            className={
+                              styles.dayDate
+                            }
+                          >
+                            {formatDate(
+                              day.date
+                            )}
+                          </span>
+
+                          <span
+                            className={
+                              styles.dayDuration
+                            }
+                          >
+                            {formatDuration(
+                              day.totalWorked ||
+                                0
+                            )}
+                          </span>
+                        </div>
+
+                        <span
+                          className={
+                            styles.dayArrow
+                          }
+                        >
+                          →
+                        </span>
+                      </button>
+                    )
+                  )}
+                </div>
+
+                <div
+                  className={
+                    styles.popupActions
+                  }
+                >
+                  <button
+                    className={
+                      styles.cancelButton
+                    }
+                    type="button"
+                    onClick={closeHistory}
+                  >
+                    Lukk
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className={
+                    styles.popupHeader
+                  }
+                >
+                  <button
+                    className={
+                      styles.backButton
+                    }
+                    type="button"
+                    onClick={() =>
+                      setSelectedDay(null)
+                    }
+                  >
+                    ← Tilbake
+                  </button>
+
+                  <span
+                    className={styles.eyebrow}
+                  >
+                    Arbeidsdag
+                  </span>
+
+                  <h2>
+                    {formatShortDate(
+                      selectedDay.date
+                    )}
+                  </h2>
+
+                  <p>
+                    {formatDate(
+                      selectedDay.date
+                    )}
+                  </p>
+                </div>
+
+                <div
+                  className={
+                    styles.selectedTotal
+                  }
+                >
+                  <span>
+                    Total arbeidstid
+                  </span>
+
+                  <strong>
+                    {formatDuration(
+                      selectedDay.totalWorked ||
+                        0
+                    )}
+                  </strong>
+                </div>
+
+                <div
+                  className={
+                    styles.selectedTimeline
+                  }
+                >
+                  {(
+                    selectedDay.registrations ||
+                    []
+                  ).map(
+                    (
+                      registration,
+                      index
+                    ) => {
+                      const timestamp =
+                        registration.time ||
+                        registration.start;
+
+                      return (
+                        <div
+                          className={
+                            styles.item
+                          }
+                          key={`${timestamp}-${index}`}
+                        >
+                          <div
+                            className={
+                              styles.timelineLine
+                            }
+                          >
+                            <span
+                              className={`${styles.dot} ${getDotClass(
+                                registration
+                              )}`}
+                            />
+                          </div>
+
+                          <div
+                            className={
+                              styles.content
+                            }
+                          >
+                            <div
+                              className={
+                                styles.itemTop
+                              }
+                            >
+                              <span
+                                className={
+                                  styles.itemTitle
+                                }
+                              >
+                                {getTitle(
+                                  registration
+                                )}
+                              </span>
+
+                              <span
+                                className={
+                                  styles.time
+                                }
+                              >
+                                {formatTime(
+                                  timestamp
+                                )}
+                              </span>
+                            </div>
+
+                            {registration.type ===
+                              "pause" &&
+                              registration.comment && (
+                                <p
+                                  className={
+                                    styles.comment
+                                  }
+                                >
+                                  {
+                                    registration.comment
+                                  }
+                                </p>
+                              )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+
+                <div
+                  className={
+                    styles.popupActions
+                  }
+                >
+                  <button
+                    className={
+                      styles.cancelButton
+                    }
+                    type="button"
+                    onClick={closeHistory}
+                  >
+                    Lukk
+                  </button>
+                </div>
+              </>
             )}
           </div>
-        )}
-      </div>
-    </section>
+        </div>
+      )}
+    </>
   );
 }
 

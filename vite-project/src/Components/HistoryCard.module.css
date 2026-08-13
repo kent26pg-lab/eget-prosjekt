@@ -92,7 +92,7 @@
 }
 
 /* =========================
-   TOTAL TIME
+   TOTAL
 ========================= */
 
 .totalSection {
@@ -129,7 +129,7 @@
 }
 
 /* =========================
-   HISTORY SECTION
+   HISTORY
 ========================= */
 
 .historySection {
@@ -140,7 +140,8 @@
    TIMELINE
 ========================= */
 
-.timeline {
+.timeline,
+.selectedTimeline {
   display: flex;
   flex-direction: column;
 }
@@ -261,6 +262,55 @@
 }
 
 /* =========================
+   HISTORY BUTTON
+========================= */
+
+.historyButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  margin-top: 12px;
+  padding: 14px 16px;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+
+  background: var(--theme-hover);
+  color: var(--text-primary);
+
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.historyButton:hover {
+  transform: translateY(-1px);
+
+  background: var(--theme-hover);
+}
+
+.historyArrow {
+  font-size: 1.1rem;
+
+  transition:
+    transform 0.2s ease;
+}
+
+.historyButton:hover
+  .historyArrow {
+  transform: translateX(4px);
+}
+
+/* =========================
    EMPTY
 ========================= */
 
@@ -270,7 +320,7 @@
   align-items: center;
   justify-content: center;
 
-  min-height: 240px;
+  min-height: 220px;
 
   text-align: center;
 }
@@ -310,6 +360,289 @@
 }
 
 /* =========================
+   POPUP OVERLAY
+========================= */
+
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  box-sizing: border-box;
+
+  background: rgba(0, 0, 0, 0.35);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  animation:
+    overlayFadeIn 0.2s ease-out;
+}
+
+/* =========================
+   POPUP
+========================= */
+
+.popup {
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+
+  padding: 28px;
+
+  box-sizing: border-box;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+
+  background: var(--popup-background);
+
+  box-shadow:
+    0 24px 60px var(--shadow);
+
+  overflow-y: auto;
+
+  animation:
+    popupFadeIn 0.2s ease-out;
+}
+
+.popupHeader h2 {
+  margin: 8px 0 0;
+
+  color: var(--text-primary);
+
+  font-size: 1.5rem;
+}
+
+.popupHeader p {
+  margin: 8px 0 0;
+
+  color: var(--text-secondary);
+
+  line-height: 1.5;
+}
+
+/* =========================
+   DAY LIST
+========================= */
+
+.dayList {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-top: 24px;
+}
+
+.dayButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  padding: 16px;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+
+  background: var(--theme-hover);
+  color: var(--text-primary);
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.dayButton:hover {
+  transform: translateY(-1px);
+
+  background: var(--theme-hover);
+}
+
+.dayInfo {
+  display: flex;
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  gap: 4px;
+}
+
+.dayDate {
+  color: var(--text-primary);
+
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dayDuration {
+  color: var(--text-secondary);
+
+  font-size: 0.8rem;
+
+  font-variant-numeric: tabular-nums;
+}
+
+.dayArrow {
+  color: var(--text-secondary);
+
+  font-size: 1.1rem;
+}
+
+/* =========================
+   BACK BUTTON
+========================= */
+
+.backButton {
+  display: inline-flex;
+
+  margin-bottom: 18px;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+  color: var(--text-secondary);
+
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease;
+}
+
+.backButton:hover {
+  color: var(--text-primary);
+}
+
+/* =========================
+   SELECTED DAY TOTAL
+========================= */
+
+.selectedTotal {
+  display: flex;
+  flex-direction: column;
+
+  margin-top: 24px;
+  padding: 18px;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+
+  background: var(--theme-hover);
+}
+
+.selectedTotal span {
+  color: var(--text-secondary);
+
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selectedTotal strong {
+  margin-top: 5px;
+
+  color: var(--text-primary);
+
+  font-size: 1.6rem;
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================
+   SELECTED TIMELINE
+========================= */
+
+.selectedTimeline {
+  margin-top: 24px;
+}
+
+/* =========================
+   POPUP ACTIONS
+========================= */
+
+.popupActions {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 24px;
+}
+
+.cancelButton {
+  padding: 10px 16px;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+
+  background: transparent;
+  color: var(--text-primary);
+
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: var(--theme-hover);
+
+  transform: translateY(-1px);
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =========================
    MOBILE
 ========================= */
 
@@ -332,19 +665,23 @@
     margin: 0 22px;
   }
 
-  .header h2 {
-    font-size: 1.3rem;
+  .popup {
+    padding: 22px;
+
+    border-radius: 20px;
+
+    max-height: 90vh;
   }
 
-  .totalTime {
-    font-size: 1.6rem;
+  .popupActions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelButton {
+    width: 100%;
   }
 
   .itemTop {
     align-items: flex-start;
-  }
-
-  .time {
-    font-size: 0.8rem;
   }
 }
