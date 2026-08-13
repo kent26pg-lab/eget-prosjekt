@@ -1,11 +1,15 @@
+import { ThemeProvider } from "./Components/ThemeProvider";
 import Header from "./Components/Header";
-import ThemeToggle from "./Components/ThemeToggle";
+
+import "./App.css";
 
 function App() {
   return (
-    <div>
-      <Header />
-    </div>
+    <ThemeProvider>
+      <div className="app">
+        <Header />
+      </div>
+    </ThemeProvider>
   );
 }
 

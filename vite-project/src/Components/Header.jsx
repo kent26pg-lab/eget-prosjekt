@@ -1,4 +1,5 @@
 import styles from "./Header.module.css";
+import ThemeToggle from "./ThemeToggle";
 
 function Header() {
   return (
