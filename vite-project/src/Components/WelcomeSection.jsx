@@ -1,6 +1,6 @@
 import styles from "./WelcomeSection.module.css";
 
-function WelcomeSection() {
+function WelcomeSection({ user }) {
   const hour = new Date().getHours();
 
   let greeting;
@@ -16,7 +16,7 @@ function WelcomeSection() {
   return (
     <section className={styles.welcome}>
       <span className={styles.greeting}>
-        {greeting}
+        {greeting}, {user?.name}
       </span>
 
       <h1 className={styles.title}>

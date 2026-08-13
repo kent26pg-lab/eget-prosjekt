@@ -39,15 +39,22 @@ function App() {
   function handleLogin(user) {
     setCurrentUser(user);
     setIsLoggedIn(true);
+    setShowAdminPanel(false);
 
     /*
-      Admin skal også starte på
-      den vanlige arbeidssiden.
-
-      AdminPanel åpnes manuelt.
+      Lagre brukeren slik at siden
+      husker hvem som er logget inn.
     */
 
-    setShowAdminPanel(false);
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(user),
+    );
+
+    localStorage.setItem(
+      "isLoggedIn",
+      "true",
+    );
   }
 
   /* =========================
@@ -110,9 +117,9 @@ function App() {
   }
 
   /* =========================
-     NORMAL APP
-     
-     Dette gjelder både:
+     MAIN APP
+
+     Gjelder både:
      - ansatte
      - administrator
   ========================== */
@@ -122,11 +129,18 @@ function App() {
       <div className="app">
         <Header />
 
-        <WelcomeSection />
+        <WelcomeSection
+          user={currentUser}
+        />
 
         <div className="cardsContainer">
-          <ClockCard />
-          <HistoryCard />
+          <ClockCard
+            user={currentUser}
+          />
+
+          <HistoryCard
+            user={currentUser}
+          />
         </div>
 
         <BottomBar

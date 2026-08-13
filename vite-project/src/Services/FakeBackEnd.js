@@ -9,7 +9,6 @@ const WORKDAYS_KEY = "fake_backend_workdays";
 function getData(key, fallback = []) {
   try {
     const data = localStorage.getItem(key);
-
     return data ? JSON.parse(data) : fallback;
   } catch {
     return fallback;
@@ -40,7 +39,6 @@ function getToday() {
   return `${year}-${month}-${day}`;
 }
 
-
 /* =========================
    DEFAULT USERS
 ========================= */
@@ -52,7 +50,7 @@ function createDefaultUsers() {
       name: "Ola Nordmann",
       username: "ola",
       password: "1234",
-      role: "employee",
+      role: "admin",
       active: true,
     },
 
@@ -85,33 +83,112 @@ function createDefaultUsers() {
   ];
 }
 
-
 /* =========================
    INITIALIZE
 ========================= */
 
 function initialize() {
-  const users = getData(
+  let users = getData(
     USERS_KEY,
     null,
   );
 
   if (!users) {
+    users = createDefaultUsers();
+  }
+
+  /*
+    Sørg for at både Ola og
+    Administrator er admin.
+  */
+
+  users = users.map((user) => {
+    if (
+      user.username?.toLowerCase() ===
+        "ola" ||
+      user.username?.toLowerCase() ===
+        "admin"
+    ) {
+      return {
+        ...user,
+        role: "admin",
+      };
+    }
+
+    return user;
+  });
+
+  /*
+    Hvis Ola ikke finnes,
+    opprett ham som admin.
+  */
+
+  const olaExists = users.some(
+    (user) =>
+      user.username?.toLowerCase() ===
+      "ola",
+  );
+
+  if (!olaExists) {
+    users.push({
+      id: "user-001",
+      name: "Ola Nordmann",
+      username: "ola",
+      password: "1234",
+      role: "admin",
+      active: true,
+    });
+  }
+
+  /*
+    Hvis Administrator ikke finnes,
+    opprett administratoren.
+  */
+
+  const adminExists = users.some(
+    (user) =>
+      user.username?.toLowerCase() ===
+      "admin",
+  );
+
+  if (!adminExists) {
+    users.push({
+      id: "admin-001",
+      name: "Administrator",
+      username: "admin",
+      password: "admin123",
+      role: "admin",
+      active: true,
+    });
+  }
+
+  saveData(
+    USERS_KEY,
+    users,
+  );
+
+  if (
+    !localStorage.getItem(
+      SESSIONS_KEY,
+    )
+  ) {
     saveData(
-      USERS_KEY,
-      createDefaultUsers(),
+      SESSIONS_KEY,
+      [],
     );
   }
 
-  if (!localStorage.getItem(SESSIONS_KEY)) {
-    saveData(SESSIONS_KEY, []);
-  }
-
-  if (!localStorage.getItem(WORKDAYS_KEY)) {
-    saveData(WORKDAYS_KEY, []);
+  if (
+    !localStorage.getItem(
+      WORKDAYS_KEY,
+    )
+  ) {
+    saveData(
+      WORKDAYS_KEY,
+      [],
+    );
   }
 }
-
 
 /* =========================
    USERS
@@ -120,7 +197,10 @@ function initialize() {
 function getUsers() {
   initialize();
 
-  return getData(USERS_KEY);
+  return getData(
+    USERS_KEY,
+    [],
+  );
 }
 
 function getUserById(userId) {
@@ -136,7 +216,6 @@ function getUserByUsername(username) {
       username.toLowerCase(),
   );
 }
-
 
 /* =========================
    LOGIN
@@ -165,9 +244,11 @@ function login(username, password) {
 
   const sessions = getData(
     SESSIONS_KEY,
+    [],
   );
 
-  const now = new Date().toISOString();
+  const now =
+    new Date().toISOString();
 
   const session = {
     id: createId("session"),
@@ -182,11 +263,6 @@ function login(username, password) {
     SESSIONS_KEY,
     sessions,
   );
-
-  /*
-    Vi returnerer ikke passordet
-    til resten av appen.
-  */
 
   const safeUser = {
     id: user.id,
@@ -203,7 +279,6 @@ function login(username, password) {
   };
 }
 
-
 /* =========================
    LOGOUT
 ========================= */
@@ -213,6 +288,7 @@ function logout(sessionId) {
 
   const sessions = getData(
     SESSIONS_KEY,
+    [],
   );
 
   const sessionIndex =
@@ -241,7 +317,6 @@ function logout(sessionId) {
   };
 }
 
-
 /* =========================
    LOGIN HISTORY
 ========================= */
@@ -251,6 +326,7 @@ function getLoginHistory(userId) {
 
   return getData(
     SESSIONS_KEY,
+    [],
   )
     .filter(
       (session) =>
@@ -263,7 +339,6 @@ function getLoginHistory(userId) {
     );
 }
 
-
 /* =========================
    WORKDAYS
 ========================= */
@@ -273,6 +348,7 @@ function getWorkdays(userId) {
 
   return getData(
     WORKDAYS_KEY,
+    [],
   )
     .filter(
       (day) =>
@@ -294,7 +370,6 @@ function getTodayWorkday(userId) {
   );
 }
 
-
 /* =========================
    CREATE WORKDAY
 ========================= */
@@ -304,6 +379,7 @@ function createWorkday(userId) {
 
   const workdays = getData(
     WORKDAYS_KEY,
+    [],
   );
 
   const today = getToday();
@@ -320,19 +396,12 @@ function createWorkday(userId) {
 
   workday = {
     id: createId("workday"),
-
     userId,
-
     date: today,
-
     clockInAt: null,
-
     clockOutAt: null,
-
     totalWorkedMs: 0,
-
     currentStatus: "inactive",
-
     registrations: [],
   };
 
@@ -346,7 +415,6 @@ function createWorkday(userId) {
   return workday;
 }
 
-
 /* =========================
    CLOCK IN
 ========================= */
@@ -356,6 +424,7 @@ function clockIn(userId) {
 
   const workdays = getData(
     WORKDAYS_KEY,
+    [],
   );
 
   const today = getToday();
@@ -418,16 +487,19 @@ function clockIn(userId) {
   };
 }
 
-
 /* =========================
    PAUSE
 ========================= */
 
-function pause(userId, comment = "") {
+function pause(
+  userId,
+  comment = "",
+) {
   initialize();
 
   const workdays = getData(
     WORKDAYS_KEY,
+    [],
   );
 
   const today = getToday();
@@ -482,7 +554,6 @@ function pause(userId, comment = "") {
   };
 }
 
-
 /* =========================
    RESUME
 ========================= */
@@ -492,6 +563,7 @@ function resume(userId) {
 
   const workdays = getData(
     WORKDAYS_KEY,
+    [],
   );
 
   const today = getToday();
@@ -546,7 +618,6 @@ function resume(userId) {
   };
 }
 
-
 /* =========================
    CLOCK OUT
 ========================= */
@@ -556,6 +627,7 @@ function clockOut(userId) {
 
   const workdays = getData(
     WORKDAYS_KEY,
+    [],
   );
 
   const today = getToday();
@@ -588,11 +660,6 @@ function clockOut(userId) {
 
   const now =
     new Date().toISOString();
-
-  /*
-    Beregn arbeidstid ut fra
-    registreringene.
-  */
 
   let totalWorkedMs = 0;
 
@@ -676,13 +743,25 @@ function clockOut(userId) {
   };
 }
 
-
 /* =========================
-   ADMIN
+   ADMIN USERS
 ========================= */
 
 function getAdminUsers() {
   initialize();
+
+  /*
+    Viktig:
+    Her filtrerer vi IKKE på role.
+
+    Derfor vises:
+    - Ola
+    - Administrator
+    - Kari
+    - Per
+
+    i samme ansattliste.
+  */
 
   return getUsers().map(
     (user) => {
@@ -720,6 +799,10 @@ function getAdminUsers() {
   );
 }
 
+/* =========================
+   ADMIN USER DETAILS
+========================= */
+
 function getAdminUserDetails(
   userId,
 ) {
@@ -744,7 +827,6 @@ function getAdminUserDetails(
       getWorkdays(userId),
   };
 }
-
 
 /* =========================
    EXPORT

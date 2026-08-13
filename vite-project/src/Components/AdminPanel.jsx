@@ -3,6 +3,10 @@ import fakeBackend from "../services/fakeBackend";
 
 import styles from "./AdminPanel.module.css";
 
+/* =========================
+   FORMAT
+========================= */
+
 function formatDate(dateString) {
   if (!dateString) return "—";
 
@@ -49,6 +53,22 @@ function formatDuration(milliseconds) {
   )} min`;
 }
 
+/* =========================
+   ROLE
+========================= */
+
+function formatRole(role) {
+  if (role === "admin") {
+    return "Administrator";
+  }
+
+  return "Ansatt";
+}
+
+/* =========================
+   ADMIN PANEL
+========================= */
+
 function AdminPanel({ onBack }) {
   const [users, setUsers] = useState([]);
 
@@ -61,6 +81,10 @@ function AdminPanel({ onBack }) {
   const [loading, setLoading] =
     useState(true);
 
+  /* =========================
+     LOAD USERS
+  ========================== */
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -68,17 +92,31 @@ function AdminPanel({ onBack }) {
   function loadUsers() {
     setLoading(true);
 
+    /*
+      VIKTIG:
+
+      Vi filtrerer IKKE bort admin.
+
+      Derfor kommer både:
+      - Ola
+      - Administrator
+      - Kari
+      - Per
+
+      med i listen.
+    */
+
     const adminUsers =
       fakeBackend.getAdminUsers();
 
-    setUsers(
-      adminUsers.filter(
-        (user) => user.role !== "admin",
-      ),
-    );
+    setUsers(adminUsers);
 
     setLoading(false);
   }
+
+  /* =========================
+     OPEN USER
+  ========================== */
 
   function openUser(user) {
     const details =
@@ -90,10 +128,18 @@ function AdminPanel({ onBack }) {
     setSelectedDetails(details);
   }
 
+  /* =========================
+     CLOSE USER
+  ========================== */
+
   function closeUser() {
     setSelectedUser(null);
     setSelectedDetails(null);
   }
+
+  /* =========================
+     STATISTICS
+  ========================== */
 
   const activeUsers = users.filter(
     (user) => user.active,
@@ -115,6 +161,10 @@ function AdminPanel({ onBack }) {
       );
     },
   ).length;
+
+  /* =========================
+     RENDER
+  ========================== */
 
   return (
     <div className={styles.adminPage}>
@@ -151,7 +201,7 @@ function AdminPanel({ onBack }) {
 
       <section className={styles.overview}>
         <div className={styles.statCard}>
-          <span>Ansatte</span>
+          <span>Ansatte og kontoer</span>
 
           <strong>
             {users.length}
@@ -176,14 +226,14 @@ function AdminPanel({ onBack }) {
       </section>
 
       {/* =========================
-          EMPLOYEES
+          USERS
       ========================== */}
 
       <section className={styles.card}>
         <div className={styles.cardHeader}>
           <div>
             <span className={styles.eyebrow}>
-              Ansatte
+              Kontoer
             </span>
 
             <h2>
@@ -200,13 +250,17 @@ function AdminPanel({ onBack }) {
           </button>
         </div>
 
+        {/* =========================
+            LOADING
+        ========================== */}
+
         {loading ? (
           <div className={styles.empty}>
             Laster ansatte...
           </div>
         ) : users.length === 0 ? (
           <div className={styles.empty}>
-            Ingen ansatte funnet.
+            Ingen kontoer funnet.
           </div>
         ) : (
           <div className={styles.userList}>
@@ -219,6 +273,8 @@ function AdminPanel({ onBack }) {
                   openUser(user)
                 }
               >
+                {/* AVATAR */}
+
                 <div
                   className={
                     styles.userAvatar
@@ -228,6 +284,8 @@ function AdminPanel({ onBack }) {
                     .charAt(0)
                     .toUpperCase()}
                 </div>
+
+                {/* INFO */}
 
                 <div
                   className={
@@ -239,9 +297,11 @@ function AdminPanel({ onBack }) {
                   </strong>
 
                   <span>
-                    {user.username}
+                    @{user.username}
                   </span>
                 </div>
+
+                {/* META */}
 
                 <div
                   className={
@@ -262,6 +322,16 @@ function AdminPanel({ onBack }) {
 
                   <span
                     className={
+                      styles.role
+                    }
+                  >
+                    {formatRole(
+                      user.role,
+                    )}
+                  </span>
+
+                  <span
+                    className={
                       styles.lastLogin
                     }
                   >
@@ -274,6 +344,8 @@ function AdminPanel({ onBack }) {
                     )}
                   </span>
                 </div>
+
+                {/* ARROW */}
 
                 <span
                   className={
@@ -304,7 +376,9 @@ function AdminPanel({ onBack }) {
                 event.stopPropagation()
               }
             >
-              {/* HEADER */}
+              {/* =========================
+                  POPUP HEADER
+              ========================== */}
 
               <div
                 className={
@@ -327,7 +401,9 @@ function AdminPanel({ onBack }) {
                       styles.eyebrow
                     }
                   >
-                    Ansatt
+                    {formatRole(
+                      selectedUser.role,
+                    )}
                   </span>
 
                   <h2>
@@ -335,14 +411,14 @@ function AdminPanel({ onBack }) {
                   </h2>
 
                   <p>
-                    {
-                      selectedUser.username
-                    }
+                    @{selectedUser.username}
                   </p>
                 </div>
               </div>
 
-              {/* DETAILS */}
+              {/* =========================
+                  DETAILS
+              ========================== */}
 
               <div
                 className={
@@ -355,7 +431,9 @@ function AdminPanel({ onBack }) {
                   </span>
 
                   <strong>
-                    Ansatt
+                    {formatRole(
+                      selectedUser.role,
+                    )}
                   </strong>
                 </div>
 
@@ -396,7 +474,9 @@ function AdminPanel({ onBack }) {
                 </div>
               </div>
 
-              {/* LOGIN HISTORY */}
+              {/* =========================
+                  LOGIN HISTORY
+              ========================== */}
 
               <div
                 className={
@@ -479,7 +559,9 @@ function AdminPanel({ onBack }) {
                 )}
               </div>
 
-              {/* WORKDAYS */}
+              {/* =========================
+                  WORKDAYS
+              ========================== */}
 
               <div
                 className={
@@ -561,7 +643,9 @@ function AdminPanel({ onBack }) {
                 )}
               </div>
 
-              {/* CLOSE */}
+              {/* =========================
+                  CLOSE
+              ========================== */}
 
               <div
                 className={
