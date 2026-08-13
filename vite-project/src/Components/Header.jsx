@@ -12,13 +12,9 @@ function Header() {
         12:35
       </div>
 
-      <button
-        className={styles.themeButton}
-        type="button"
-        aria-label="Bytt tema"
-      >
-        ☾
-      </button>
+      <div className={styles.themeToggle}>
+        <ThemeToggle />
+      </div>
     </header>
   );
 }
