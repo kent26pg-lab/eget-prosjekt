@@ -18,6 +18,25 @@ const defaultData = {
   history: [],
 };
 
+function sanitizeDay(day) {
+  if (!day) {
+    return null;
+  }
+
+  return {
+    ...day,
+    totalWorked: Math.max(
+      0,
+      Number(day.totalWorked) || 0,
+    ),
+    registrations: Array.isArray(
+      day.registrations,
+    )
+      ? day.registrations
+      : [],
+  };
+}
+
 function getStoredData() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
@@ -28,24 +47,33 @@ function getStoredData() {
   try {
     const parsed = JSON.parse(saved);
 
-    // Støtter også gammel lagring
+    // Støtter gammel lagring
     if (!parsed.currentDay && parsed.status) {
       return {
-        currentDay: {
+        currentDay: sanitizeDay({
           date: getToday(),
           totalWorked: parsed.totalWorked || 0,
           workStart: parsed.workStart || null,
           pauseStart: parsed.pauseStart || null,
           status: parsed.status || "notStarted",
-          registrations: parsed.registrations || [],
-        },
-        history: [],
+          registrations:
+            parsed.registrations || [],
+        }),
+        history: Array.isArray(parsed.history)
+          ? parsed.history.map(sanitizeDay)
+          : [],
       };
     }
 
     return {
-      currentDay: parsed.currentDay || null,
-      history: parsed.history || [],
+      currentDay: sanitizeDay(
+        parsed.currentDay || null,
+      ),
+      history: Array.isArray(parsed.history)
+        ? parsed.history
+            .map(sanitizeDay)
+            .filter(Boolean)
+        : [],
     };
   } catch {
     return defaultData;
@@ -66,6 +94,10 @@ function ClockCard() {
   const [pauseComment, setPauseComment] =
     useState("");
 
+  /* =========================
+     CLOCK
+  ========================== */
+
   useEffect(() => {
     const interval = setInterval(() => {
       setNow(Date.now());
@@ -74,20 +106,33 @@ function ClockCard() {
     return () => clearInterval(interval);
   }, []);
 
+  /* =========================
+     SAVE
+  ========================== */
+
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(data)
+      JSON.stringify(data),
     );
   }, [data]);
+
+  /* =========================
+     CREATE NEW DAY
+  ========================== */
 
   function createNewDay() {
     const newDay = {
       date: getToday(),
+
       totalWorked: 0,
+
       workStart: null,
+
       pauseStart: null,
+
       status: "notStarted",
+
       registrations: [],
     };
 
@@ -99,65 +144,70 @@ function ClockCard() {
     return newDay;
   }
 
-  function ensureToday() {
-    const today = getToday();
-
-    if (
-      data.currentDay &&
-      data.currentDay.date === today
-    ) {
-      return data.currentDay;
-    }
-
-    // Hvis vi har en gammel ferdig arbeidsdag,
-    // flyttes den til historikken.
-    if (data.currentDay) {
-      setData((previous) => ({
-        ...previous,
-        history: [
-          previous.currentDay,
-          ...previous.history,
-        ],
-        currentDay: null,
-      }));
-    }
-
-    return null;
-  }
+  /* =========================
+     CLOCK IN
+  ========================== */
 
   function handleClockIn() {
     const today = getToday();
 
+    const timestamp = Date.now();
+
     let currentDay = data.currentDay;
 
-    // Ny dato = ny arbeidsdag
+    /*
+      Hvis det er en ny dato,
+      opprettes en helt ny arbeidsdag.
+    */
+
     if (
       !currentDay ||
       currentDay.date !== today
     ) {
       currentDay = {
         date: today,
+
         totalWorked: 0,
-        workStart: Date.now(),
+
+        workStart: timestamp,
+
         pauseStart: null,
+
         status: "working",
+
         registrations: [
           {
             type: "work",
-            time: Date.now(),
+            time: timestamp,
           },
         ],
       };
     } else {
+      /*
+        Hvis dagens arbeidsdag finnes,
+        starter vi en ny arbeidsperiode.
+      */
+
       currentDay = {
         ...currentDay,
-        workStart: Date.now(),
+
+        totalWorked: Math.max(
+          0,
+          currentDay.totalWorked || 0,
+        ),
+
+        workStart: timestamp,
+
+        pauseStart: null,
+
         status: "working",
+
         registrations: [
           ...currentDay.registrations,
+
           {
             type: "work",
-            time: Date.now(),
+            time: timestamp,
           },
         ],
       };
@@ -166,22 +216,34 @@ function ClockCard() {
     setData((previous) => {
       let history = previous.history;
 
+      /*
+        Gammel dag flyttes automatisk
+        til historikken.
+      */
+
       if (
         previous.currentDay &&
         previous.currentDay.date !== today
       ) {
         history = [
-          previous.currentDay,
+          sanitizeDay(
+            previous.currentDay,
+          ),
           ...history,
         ];
       }
 
       return {
         history,
+
         currentDay,
       };
     });
   }
+
+  /* =========================
+     PAUSE
+  ========================== */
 
   function handlePause() {
     if (
@@ -195,7 +257,43 @@ function ClockCard() {
   }
 
   function confirmPause() {
+    if (
+      !data.currentDay ||
+      data.currentDay.status !== "working" ||
+      !data.currentDay.workStart
+    ) {
+      return;
+    }
+
     const timestamp = Date.now();
+
+    /*
+      VIKTIG:
+
+      Her avslutter vi arbeidsperioden.
+
+      Alt arbeid fra workStart
+      frem til pause legges til totalWorked.
+
+      Pausetiden blir aldri en del
+      av totalWorked.
+    */
+
+    const currentWorked =
+      Math.max(
+        0,
+        timestamp -
+          data.currentDay.workStart,
+      );
+
+    const previousTotal =
+      Math.max(
+        0,
+        data.currentDay.totalWorked || 0,
+      );
+
+    const newTotal =
+      previousTotal + currentWorked;
 
     setData((previous) => ({
       ...previous,
@@ -203,7 +301,12 @@ function ClockCard() {
       currentDay: {
         ...previous.currentDay,
 
+        totalWorked: newTotal,
+
+        workStart: null,
+
         pauseStart: timestamp,
+
         status: "paused",
 
         registrations: [
@@ -211,16 +314,24 @@ function ClockCard() {
 
           {
             type: "pause",
+
             time: timestamp,
-            comment: pauseComment.trim(),
+
+            comment:
+              pauseComment.trim(),
           },
         ],
       },
     }));
 
     setPauseComment("");
+
     setShowPausePopup(false);
   }
+
+  /* =========================
+     RESUME WORK
+  ========================== */
 
   function resumeWork() {
     if (
@@ -232,9 +343,15 @@ function ClockCard() {
 
     const timestamp = Date.now();
 
-    const pauseDuration =
-      timestamp -
-      data.currentDay.pauseStart;
+    /*
+      Vi skal IKKE trekke fra pausetiden.
+
+      Total arbeidstid inneholder allerede
+      alle ferdige arbeidsperioder.
+
+      Nå starter vi bare en ny
+      arbeidsperiode.
+    */
 
     setData((previous) => ({
       ...previous,
@@ -242,11 +359,16 @@ function ClockCard() {
       currentDay: {
         ...previous.currentDay,
 
-        totalWorked:
-          previous.currentDay.totalWorked -
-          pauseDuration,
+        totalWorked: Math.max(
+          0,
+          previous.currentDay.totalWorked ||
+            0,
+        ),
+
+        workStart: timestamp,
 
         pauseStart: null,
+
         status: "working",
 
         registrations: [
@@ -254,6 +376,7 @@ function ClockCard() {
 
           {
             type: "work",
+
             time: timestamp,
           },
         ],
@@ -261,8 +384,18 @@ function ClockCard() {
     }));
   }
 
+  /* =========================
+     CLOCK OUT
+  ========================== */
+
   function handleClockOut() {
-    if (!data.currentDay) {
+    if (
+      !data.currentDay ||
+      (data.currentDay.status !==
+        "working" &&
+        data.currentDay.status !==
+          "paused")
+    ) {
       return;
     }
 
@@ -276,36 +409,49 @@ function ClockCard() {
 
     const timestamp = Date.now();
 
-    let totalWorked =
-      data.currentDay.totalWorked;
+    let totalWorked = Math.max(
+      0,
+      data.currentDay.totalWorked || 0,
+    );
+
+    /*
+      Hvis personen fortsatt jobber,
+      må siste arbeidsperiode legges til.
+    */
 
     if (
       data.currentDay.status === "working" &&
       data.currentDay.workStart
     ) {
-      totalWorked +=
+      const currentWorked = Math.max(
+        0,
         timestamp -
-        data.currentDay.workStart;
+          data.currentDay.workStart,
+      );
+
+      totalWorked += currentWorked;
     }
 
-    if (
-      data.currentDay.status === "paused"
-    ) {
-      const pauseDuration =
-        timestamp -
-        data.currentDay.pauseStart;
+    /*
+      Hvis personen står på pause,
+      skal vi IKKE legge til noe.
 
-      totalWorked -= pauseDuration;
-    }
+      Pausen er allerede utenfor
+      arbeidstiden.
+    */
 
     const finishedDay = {
       ...data.currentDay,
 
-      totalWorked,
+      totalWorked: Math.max(
+        0,
+        totalWorked,
+      ),
 
       status: "finished",
 
       workStart: null,
+
       pauseStart: null,
 
       registrations: [
@@ -313,6 +459,7 @@ function ClockCard() {
 
         {
           type: "clockOut",
+
           time: timestamp,
         },
       ],
@@ -320,57 +467,107 @@ function ClockCard() {
 
     setData((previous) => ({
       currentDay: finishedDay,
+
       history: previous.history,
     }));
 
     setShowClockOutPopup(false);
   }
 
+  /* =========================
+     FORMAT TIME
+  ========================== */
+
   function formatDuration(milliseconds) {
+    const safeMilliseconds = Math.max(
+      0,
+      Number(milliseconds) || 0,
+    );
+
     const totalSeconds = Math.floor(
-      milliseconds / 1000
+      safeMilliseconds / 1000,
     );
 
     const hours = Math.floor(
-      totalSeconds / 3600
+      totalSeconds / 3600,
     );
 
     const minutes = Math.floor(
-      (totalSeconds % 3600) / 60
+      (totalSeconds % 3600) / 60,
     );
 
-    const seconds = totalSeconds % 60;
+    const seconds =
+      totalSeconds % 60;
 
-    return `${hours} t ${String(minutes).padStart(
+    return `${hours} t ${String(
+      minutes,
+    ).padStart(
       2,
-      "0"
-    )} min ${String(seconds).padStart(
+      "0",
+    )} min ${String(
+      seconds,
+    ).padStart(
       2,
-      "0"
+      "0",
     )} sek`;
   }
 
+  /* =========================
+     CURRENT DAY
+  ========================== */
+
   const currentDay = data.currentDay;
 
-  let totalWorked =
-    currentDay?.totalWorked || 0;
+  /*
+    Totalen består av:
+
+    1. Tid fra tidligere arbeidsperioder
+    2. + tiden siden siste innstempling
+       dersom vi jobber akkurat nå
+
+    Pause påvirker ikke klokken.
+  */
+
+  let totalWorked = Math.max(
+    0,
+    currentDay?.totalWorked || 0,
+  );
 
   if (
     currentDay?.status === "working" &&
     currentDay.workStart
   ) {
-    totalWorked +=
-      now - currentDay.workStart;
+    totalWorked += Math.max(
+      0,
+      now - currentDay.workStart,
+    );
   }
 
-  const status = currentDay?.status || "notStarted";
+  totalWorked = Math.max(
+    0,
+    totalWorked,
+  );
+
+  const status =
+    currentDay?.status ||
+    "notStarted";
+
+  /* =========================
+     RENDER
+  ========================== */
 
   return (
     <>
       <section className={styles.card}>
         <div className={styles.workSection}>
-          <div className={styles.sectionHeader}>
-            <span className={styles.eyebrow}>
+          <div
+            className={
+              styles.sectionHeader
+            }
+          >
+            <span
+              className={styles.eyebrow}
+            >
               Arbeidstid
             </span>
 
@@ -393,17 +590,33 @@ function ClockCard() {
             </span>
           </div>
 
-          <div className={styles.timeContainer}>
-            <span className={styles.totalTime}>
-              {formatDuration(totalWorked)}
+          <div
+            className={
+              styles.timeContainer
+            }
+          >
+            <span
+              className={
+                styles.totalTime
+              }
+            >
+              {formatDuration(
+                totalWorked,
+              )}
             </span>
 
-            <span className={styles.timeLabel}>
+            <span
+              className={
+                styles.timeLabel
+              }
+            >
               Total arbeidstid
             </span>
           </div>
 
-          <div className={styles.actions}>
+          <div
+            className={styles.actions}
+          >
             <button
               className={`${styles.actionButton} ${styles.clockIn}`}
               type="button"
@@ -429,7 +642,9 @@ function ClockCard() {
                 className={`${styles.actionButton} ${styles.pause}`}
                 type="button"
                 onClick={handlePause}
-                disabled={status !== "working"}
+                disabled={
+                  status !== "working"
+                }
               >
                 Sett på pause
               </button>
@@ -438,7 +653,9 @@ function ClockCard() {
             <button
               className={`${styles.actionButton} ${styles.clockOut}`}
               type="button"
-              onClick={handleClockOut}
+              onClick={
+                handleClockOut
+              }
               disabled={
                 status !== "working" &&
                 status !== "paused"
@@ -450,32 +667,60 @@ function ClockCard() {
         </div>
       </section>
 
+      {/* =========================
+          PAUSE POPUP
+      ========================== */}
+
       {showPausePopup && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popup}>
-            <div className={styles.popupHeader}>
-              <span className={styles.eyebrow}>
+        <div
+          className={
+            styles.popupOverlay
+          }
+        >
+          <div
+            className={styles.popup}
+          >
+            <div
+              className={
+                styles.popupHeader
+              }
+            >
+              <span
+                className={
+                  styles.eyebrow
+                }
+              >
                 Pause
               </span>
 
-              <h2>Sett på pause</h2>
+              <h2>
+                Sett på pause
+              </h2>
 
               <p>
-                Vil du legge til en kommentar?
+                Vil du legge til en
+                kommentar?
               </p>
             </div>
 
-            <div className={styles.inputGroup}>
+            <div
+              className={
+                styles.inputGroup
+              }
+            >
               <label htmlFor="pauseComment">
                 Kommentar
               </label>
 
               <textarea
                 id="pauseComment"
-                value={pauseComment}
+                value={
+                  pauseComment
+                }
                 onChange={(event) =>
                   setPauseComment(
-                    event.target.value
+                    event.target
+                      .value,
                   )
                 }
                 placeholder="Valgfri kommentar..."
@@ -483,21 +728,33 @@ function ClockCard() {
               />
             </div>
 
-            <div className={styles.popupActions}>
+            <div
+              className={
+                styles.popupActions
+              }
+            >
               <button
-                className={styles.cancelButton}
+                className={
+                  styles.cancelButton
+                }
                 type="button"
                 onClick={() =>
-                  setShowPausePopup(false)
+                  setShowPausePopup(
+                    false,
+                  )
                 }
               >
                 Avbryt
               </button>
 
               <button
-                className={styles.confirmButton}
+                className={
+                  styles.confirmButton
+                }
                 type="button"
-                onClick={confirmPause}
+                onClick={
+                  confirmPause
+                }
               >
                 Sett på pause
               </button>
@@ -506,37 +763,70 @@ function ClockCard() {
         </div>
       )}
 
+      {/* =========================
+          CLOCK OUT POPUP
+      ========================== */}
+
       {showClockOutPopup && (
-        <div className={styles.popupOverlay}>
-          <div className={styles.popup}>
-            <div className={styles.popupHeader}>
-              <span className={styles.eyebrow}>
+        <div
+          className={
+            styles.popupOverlay
+          }
+        >
+          <div
+            className={styles.popup}
+          >
+            <div
+              className={
+                styles.popupHeader
+              }
+            >
+              <span
+                className={
+                  styles.eyebrow
+                }
+              >
                 Arbeidsdag
               </span>
 
-              <h2>Stemple ut?</h2>
+              <h2>
+                Stemple ut?
+              </h2>
 
               <p>
-                Er du sikker på at du vil avslutte
+                Er du sikker på at du
+                vil avslutte
                 arbeidsdagen?
               </p>
             </div>
 
-            <div className={styles.popupActions}>
+            <div
+              className={
+                styles.popupActions
+              }
+            >
               <button
-                className={styles.cancelButton}
+                className={
+                  styles.cancelButton
+                }
                 type="button"
                 onClick={() =>
-                  setShowClockOutPopup(false)
+                  setShowClockOutPopup(
+                    false,
+                  )
                 }
               >
                 Avbryt
               </button>
 
               <button
-                className={styles.confirmButton}
+                className={
+                  styles.confirmButton
+                }
                 type="button"
-                onClick={confirmClockOut}
+                onClick={
+                  confirmClockOut
+                }
               >
                 Godkjenn
               </button>
