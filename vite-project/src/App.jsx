@@ -5,6 +5,7 @@ import Header from "./Components/Header";
 import WelcomeSection from "./Components/WelcomeSection";
 import Login from "./Components/Login";
 import BottomBar from "./Components/BottomBar";
+import ClockCard from "./Components/ClockCard";
 
 import "./App.css";
 
@@ -14,10 +15,13 @@ function App() {
   );
 
   function handleLogin() {
+    localStorage.setItem("isLoggedIn", "true");
     setIsLoggedIn(true);
   }
 
   function handleLogout() {
+    // Fjerner bare login-status.
+    // clockCardData blir beholdt slik at arbeidstiden ikke forsvinner.
     localStorage.removeItem("isLoggedIn");
     setIsLoggedIn(false);
   }
@@ -30,7 +34,11 @@ function App() {
         <div className="app">
           <Header />
 
-          <WelcomeSection />
+          <main>
+            <WelcomeSection />
+
+            <ClockCard />
+          </main>
 
           <BottomBar onLogout={handleLogout} />
         </div>
