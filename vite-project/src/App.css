@@ -1,10 +1,111 @@
+/* ================================
+   APP
+================================ */
+
 .app {
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 
   background: var(--background);
   color: var(--text-primary);
+}
 
-  transition:
-    background 0.3s ease,
-    color 0.3s ease;
+
+/* ================================
+   MAIN
+================================ */
+
+main {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 0 32px 120px;
+}
+
+
+/* ================================
+   DASHBOARD
+================================ */
+
+.dashboard {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 2fr)
+    minmax(0, 1fr);
+
+  gap: 24px;
+
+  width: 100%;
+  max-width: 1200px;
+
+  margin: 32px auto 0;
+
+  box-sizing: border-box;
+}
+
+.dashboard > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+
+/* ================================
+   TABLET
+================================ */
+
+@media (max-width: 1000px) {
+  main {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .dashboard {
+    grid-template-columns:
+      minmax(0, 1.5fr)
+      minmax(0, 1fr);
+
+    gap: 20px;
+  }
+}
+
+
+/* ================================
+   MOBILE
+================================ */
+
+@media (max-width: 850px) {
+  main {
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-bottom: 110px;
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 18px;
+
+    margin-top: 24px;
+  }
+}
+
+
+/* ================================
+   SMALL MOBILE
+================================ */
+
+@media (max-width: 480px) {
+  main {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .dashboard {
+    gap: 14px;
+  }
 }

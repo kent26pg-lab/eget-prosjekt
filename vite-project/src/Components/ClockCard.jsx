@@ -3,34 +3,59 @@ import styles from "./ClockCard.module.css";
 
 const STORAGE_KEY = "clockCardData";
 
-function getInitialData() {
+function getToday() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+const defaultData = {
+  currentDay: null,
+  history: [],
+};
+
+function getStoredData() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    return {
-      status: "notStarted",
-      workStart: null,
-      pauseStart: null,
-      totalWorked: 0,
-      registrations: [],
-    };
+    return defaultData;
   }
 
   try {
-    return JSON.parse(saved);
-  } catch {
+    const parsed = JSON.parse(saved);
+
+    // Støtter også gammel lagring
+    if (!parsed.currentDay && parsed.status) {
+      return {
+        currentDay: {
+          date: getToday(),
+          totalWorked: parsed.totalWorked || 0,
+          workStart: parsed.workStart || null,
+          pauseStart: parsed.pauseStart || null,
+          status: parsed.status || "notStarted",
+          registrations: parsed.registrations || [],
+        },
+        history: [],
+      };
+    }
+
     return {
-      status: "notStarted",
-      workStart: null,
-      pauseStart: null,
-      totalWorked: 0,
-      registrations: [],
+      currentDay: parsed.currentDay || null,
+      history: parsed.history || [],
     };
+  } catch {
+    return defaultData;
   }
 }
 
 function ClockCard() {
-  const [data, setData] = useState(getInitialData);
+  const [data, setData] = useState(getStoredData);
+
+  const [now, setNow] = useState(Date.now());
 
   const [showPausePopup, setShowPausePopup] =
     useState(false);
@@ -41,11 +66,14 @@ function ClockCard() {
   const [pauseComment, setPauseComment] =
     useState("");
 
-  /*
-   * Lagrer arbeidsstatus i localStorage.
-   * Dette gjør at arbeidstiden overlever
-   * både logout og refresh.
-   */
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
@@ -53,38 +81,251 @@ function ClockCard() {
     );
   }, [data]);
 
-  /*
-   * Oppdater arbeidstiden hvert sekund
-   * mens brukeren er stemplet inn.
-   */
-  useEffect(() => {
+  function createNewDay() {
+    const newDay = {
+      date: getToday(),
+      totalWorked: 0,
+      workStart: null,
+      pauseStart: null,
+      status: "notStarted",
+      registrations: [],
+    };
+
+    setData((previous) => ({
+      ...previous,
+      currentDay: newDay,
+    }));
+
+    return newDay;
+  }
+
+  function ensureToday() {
+    const today = getToday();
+
     if (
-      data.status !== "working" ||
-      !data.workStart
+      data.currentDay &&
+      data.currentDay.date === today
+    ) {
+      return data.currentDay;
+    }
+
+    // Hvis vi har en gammel ferdig arbeidsdag,
+    // flyttes den til historikken.
+    if (data.currentDay) {
+      setData((previous) => ({
+        ...previous,
+        history: [
+          previous.currentDay,
+          ...previous.history,
+        ],
+        currentDay: null,
+      }));
+    }
+
+    return null;
+  }
+
+  function handleClockIn() {
+    const today = getToday();
+
+    let currentDay = data.currentDay;
+
+    // Ny dato = ny arbeidsdag
+    if (
+      !currentDay ||
+      currentDay.date !== today
+    ) {
+      currentDay = {
+        date: today,
+        totalWorked: 0,
+        workStart: Date.now(),
+        pauseStart: null,
+        status: "working",
+        registrations: [
+          {
+            type: "work",
+            time: Date.now(),
+          },
+        ],
+      };
+    } else {
+      currentDay = {
+        ...currentDay,
+        workStart: Date.now(),
+        status: "working",
+        registrations: [
+          ...currentDay.registrations,
+          {
+            type: "work",
+            time: Date.now(),
+          },
+        ],
+      };
+    }
+
+    setData((previous) => {
+      let history = previous.history;
+
+      if (
+        previous.currentDay &&
+        previous.currentDay.date !== today
+      ) {
+        history = [
+          previous.currentDay,
+          ...history,
+        ];
+      }
+
+      return {
+        history,
+        currentDay,
+      };
+    });
+  }
+
+  function handlePause() {
+    if (
+      !data.currentDay ||
+      data.currentDay.status !== "working"
     ) {
       return;
     }
 
-    const timer = setInterval(() => {
-      const now = Date.now();
+    setShowPausePopup(true);
+  }
 
-      setData((current) => ({
-        ...current,
+  function confirmPause() {
+    const timestamp = Date.now();
+
+    setData((previous) => ({
+      ...previous,
+
+      currentDay: {
+        ...previous.currentDay,
+
+        pauseStart: timestamp,
+        status: "paused",
+
+        registrations: [
+          ...previous.currentDay.registrations,
+
+          {
+            type: "pause",
+            time: timestamp,
+            comment: pauseComment.trim(),
+          },
+        ],
+      },
+    }));
+
+    setPauseComment("");
+    setShowPausePopup(false);
+  }
+
+  function resumeWork() {
+    if (
+      !data.currentDay ||
+      data.currentDay.status !== "paused"
+    ) {
+      return;
+    }
+
+    const timestamp = Date.now();
+
+    const pauseDuration =
+      timestamp -
+      data.currentDay.pauseStart;
+
+    setData((previous) => ({
+      ...previous,
+
+      currentDay: {
+        ...previous.currentDay,
 
         totalWorked:
-          current.totalWorked +
-          (now - current.workStart),
+          previous.currentDay.totalWorked -
+          pauseDuration,
 
-        workStart: now,
-      }));
-    }, 1000);
+        pauseStart: null,
+        status: "working",
 
-    return () => clearInterval(timer);
-  }, [data.status, data.workStart]);
+        registrations: [
+          ...previous.currentDay.registrations,
 
-  /*
-   * Formaterer arbeidstid.
-   */
+          {
+            type: "work",
+            time: timestamp,
+          },
+        ],
+      },
+    }));
+  }
+
+  function handleClockOut() {
+    if (!data.currentDay) {
+      return;
+    }
+
+    setShowClockOutPopup(true);
+  }
+
+  function confirmClockOut() {
+    if (!data.currentDay) {
+      return;
+    }
+
+    const timestamp = Date.now();
+
+    let totalWorked =
+      data.currentDay.totalWorked;
+
+    if (
+      data.currentDay.status === "working" &&
+      data.currentDay.workStart
+    ) {
+      totalWorked +=
+        timestamp -
+        data.currentDay.workStart;
+    }
+
+    if (
+      data.currentDay.status === "paused"
+    ) {
+      const pauseDuration =
+        timestamp -
+        data.currentDay.pauseStart;
+
+      totalWorked -= pauseDuration;
+    }
+
+    const finishedDay = {
+      ...data.currentDay,
+
+      totalWorked,
+
+      status: "finished",
+
+      workStart: null,
+      pauseStart: null,
+
+      registrations: [
+        ...data.currentDay.registrations,
+
+        {
+          type: "clockOut",
+          time: timestamp,
+        },
+      ],
+    };
+
+    setData((previous) => ({
+      currentDay: finishedDay,
+      history: previous.history,
+    }));
+
+    setShowClockOutPopup(false);
+  }
+
   function formatDuration(milliseconds) {
     const totalSeconds = Math.floor(
       milliseconds / 1000
@@ -103,244 +344,64 @@ function ClockCard() {
     return `${hours} t ${String(minutes).padStart(
       2,
       "0"
-    )} min ${String(seconds).padStart(2, "0")} sek`;
+    )} min ${String(seconds).padStart(
+      2,
+      "0"
+    )} sek`;
   }
 
-  /*
-   * STEMPLE INN
-   */
-  function handleClockIn() {
-    const now = Date.now();
+  const currentDay = data.currentDay;
 
-    setData((current) => ({
-      ...current,
-
-      status: "working",
-
-      workStart: now,
-
-      pauseStart: null,
-
-      registrations: [
-        ...current.registrations,
-
-        {
-          type: "work",
-          start: now,
-        },
-      ],
-    }));
-  }
-
-  /*
-   * ÅPNE PAUSE
-   */
-  function handleOpenPause() {
-    setPauseComment("");
-
-    setShowPausePopup(true);
-  }
-
-  /*
-   * START PAUSE
-   */
-  function handleStartPause() {
-    const now = Date.now();
-
-    setData((current) => {
-      let updatedTotal = current.totalWorked;
-
-      if (current.workStart) {
-        updatedTotal +=
-          now - current.workStart;
-      }
-
-      return {
-        ...current,
-
-        status: "paused",
-
-        workStart: null,
-
-        pauseStart: now,
-
-        totalWorked: updatedTotal,
-
-        registrations: [
-          ...current.registrations,
-
-          {
-            type: "pause",
-
-            start: now,
-
-            comment: pauseComment.trim(),
-          },
-        ],
-      };
-    });
-
-    setPauseComment("");
-
-    setShowPausePopup(false);
-  }
-
-  /*
-   * AVSLUTT PAUSE
-   */
-  function handleEndPause() {
-    const now = Date.now();
-
-    setData((current) => ({
-      ...current,
-
-      status: "working",
-
-      workStart: now,
-
-      pauseStart: null,
-
-      registrations: [
-        ...current.registrations,
-
-        {
-          type: "work",
-          start: now,
-        },
-      ],
-    }));
-  }
-
-  /*
-   * AVBRYT PAUSE
-   */
-  function handleCancelPause() {
-    setPauseComment("");
-
-    setShowPausePopup(false);
-  }
-
-  /*
-   * ÅPNE STEMPLE UT
-   */
-  function handleOpenClockOut() {
-    setShowClockOutPopup(true);
-  }
-
-  /*
-   * STEMPLE UT
-   */
-  function handleClockOut() {
-    const now = Date.now();
-
-    setData((current) => {
-      let updatedTotal = current.totalWorked;
-
-      if (
-        current.status === "working" &&
-        current.workStart
-      ) {
-        updatedTotal +=
-          now - current.workStart;
-      }
-
-      return {
-        ...current,
-
-        status: "notStarted",
-
-        workStart: null,
-
-        pauseStart: null,
-
-        totalWorked: updatedTotal,
-
-        registrations: [
-          ...current.registrations,
-
-          {
-            type: "clockOut",
-
-            time: now,
-          },
-        ],
-      };
-    });
-
-    setShowClockOutPopup(false);
-  }
-
-  /*
-   * AVBRYT STEMPLE UT
-   */
-  function handleCancelClockOut() {
-    setShowClockOutPopup(false);
-  }
-
-  const isWorking = data.status === "working";
-
-  const isPaused = data.status === "paused";
-
-  /*
-   * Beregn tiden akkurat nå.
-   */
-  let displayedTotal = data.totalWorked;
+  let totalWorked =
+    currentDay?.totalWorked || 0;
 
   if (
-    isWorking &&
-    data.workStart
+    currentDay?.status === "working" &&
+    currentDay.workStart
   ) {
-    displayedTotal +=
-      Date.now() - data.workStart;
+    totalWorked +=
+      now - currentDay.workStart;
   }
+
+  const status = currentDay?.status || "notStarted";
 
   return (
     <>
       <section className={styles.card}>
-        {/* =========================
-            STATUS
-        ========================== */}
-
         <div className={styles.workSection}>
           <div className={styles.sectionHeader}>
             <span className={styles.eyebrow}>
-              Arbeidsdag
+              Arbeidstid
             </span>
 
             <span
               className={`${styles.status} ${
-                isWorking
+                status === "working"
                   ? styles.statusWorking
-                  : isPaused
-                    ? styles.statusPaused
-                    : styles.statusInactive
+                  : status === "paused"
+                  ? styles.statusPaused
+                  : styles.statusInactive
               }`}
             >
-              {isWorking
+              {status === "working"
                 ? "På jobb"
-                : isPaused
-                  ? "På pause"
-                  : "Ikke stemplet inn"}
+                : status === "paused"
+                ? "Pause"
+                : status === "finished"
+                ? "Ferdig"
+                : "Ikke stemplet inn"}
             </span>
           </div>
-
-          {/* =========================
-              ARBEIDSTID
-          ========================== */}
 
           <div className={styles.timeContainer}>
             <span className={styles.totalTime}>
-              {formatDuration(displayedTotal)}
+              {formatDuration(totalWorked)}
             </span>
 
             <span className={styles.timeLabel}>
-              totalt stemplet inn i dag
+              Total arbeidstid
             </span>
           </div>
-
-          {/* =========================
-              KNAPPER
-          ========================== */}
 
           <div className={styles.actions}>
             <button
@@ -348,37 +409,39 @@ function ClockCard() {
               type="button"
               onClick={handleClockIn}
               disabled={
-                isWorking || isPaused
+                status === "working" ||
+                status === "paused"
               }
             >
               Stemple inn
             </button>
 
-            <button
-              className={`${styles.actionButton} ${styles.pause}`}
-              type="button"
-              onClick={
-                isPaused
-                  ? handleEndPause
-                  : handleOpenPause
-              }
-              disabled={
-                !isWorking && !isPaused
-              }
-            >
-              {isPaused
-                ? "Avslutt pause"
-                : "Sett på pause"}
-            </button>
+            {status === "paused" ? (
+              <button
+                className={`${styles.actionButton} ${styles.pause}`}
+                type="button"
+                onClick={resumeWork}
+              >
+                Fortsett arbeid
+              </button>
+            ) : (
+              <button
+                className={`${styles.actionButton} ${styles.pause}`}
+                type="button"
+                onClick={handlePause}
+                disabled={status !== "working"}
+              >
+                Sett på pause
+              </button>
+            )}
 
             <button
               className={`${styles.actionButton} ${styles.clockOut}`}
               type="button"
-              onClick={
-                handleOpenClockOut
-              }
+              onClick={handleClockOut}
               disabled={
-                !isWorking && !isPaused
+                status !== "working" &&
+                status !== "paused"
               }
             >
               Stemple ut
@@ -387,51 +450,22 @@ function ClockCard() {
         </div>
       </section>
 
-      {/* =========================
-          PAUSE POPUP
-      ========================== */}
-
       {showPausePopup && (
-        <div
-          className={styles.popupOverlay}
-          onMouseDown={
-            handleCancelPause
-          }
-        >
-          <div
-            className={styles.popup}
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div
-              className={
-                styles.popupHeader
-              }
-            >
-              <span
-                className={
-                  styles.eyebrow
-                }
-              >
+        <div className={styles.popupOverlay}>
+          <div className={styles.popup}>
+            <div className={styles.popupHeader}>
+              <span className={styles.eyebrow}>
                 Pause
               </span>
 
-              <h2>
-                Sett på pause
-              </h2>
+              <h2>Sett på pause</h2>
 
               <p>
-                Du kan legge til en
-                kommentar hvis du ønsker.
+                Vil du legge til en kommentar?
               </p>
             </div>
 
-            <div
-              className={
-                styles.inputGroup
-              }
-            >
+            <div className={styles.inputGroup}>
               <label htmlFor="pauseComment">
                 Kommentar
               </label>
@@ -444,117 +478,67 @@ function ClockCard() {
                     event.target.value
                   )
                 }
-                placeholder="F.eks. lunsj"
-                rows="3"
+                placeholder="Valgfri kommentar..."
+                rows="4"
               />
             </div>
 
-            <div
-              className={
-                styles.popupActions
-              }
-            >
+            <div className={styles.popupActions}>
               <button
-                className={
-                  styles.cancelButton
-                }
+                className={styles.cancelButton}
                 type="button"
-                onClick={
-                  handleCancelPause
+                onClick={() =>
+                  setShowPausePopup(false)
                 }
               >
                 Avbryt
               </button>
 
               <button
-                className={
-                  styles.confirmButton
-                }
+                className={styles.confirmButton}
                 type="button"
-                onClick={
-                  handleStartPause
-                }
+                onClick={confirmPause}
               >
-                Start pause
+                Sett på pause
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* =========================
-          STEMPLE UT POPUP
-      ========================== */}
-
       {showClockOutPopup && (
-        <div
-          className={styles.popupOverlay}
-          onMouseDown={
-            handleCancelClockOut
-          }
-        >
-          <div
-            className={styles.popup}
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div
-              className={
-                styles.popupHeader
-              }
-            >
-              <span
-                className={
-                  styles.eyebrow
-                }
-              >
+        <div className={styles.popupOverlay}>
+          <div className={styles.popup}>
+            <div className={styles.popupHeader}>
+              <span className={styles.eyebrow}>
                 Arbeidsdag
               </span>
 
-              <h2>
-                Vil du stemple ut?
-              </h2>
+              <h2>Stemple ut?</h2>
 
               <p>
-                Du har vært stemplet inn
-                i totalt{" "}
-                <strong>
-                  {formatDuration(
-                    displayedTotal
-                  )}
-                </strong>{" "}
-                i dag.
+                Er du sikker på at du vil avslutte
+                arbeidsdagen?
               </p>
             </div>
 
-            <div
-              className={
-                styles.popupActions
-              }
-            >
+            <div className={styles.popupActions}>
               <button
-                className={
-                  styles.cancelButton
-                }
+                className={styles.cancelButton}
                 type="button"
-                onClick={
-                  handleCancelClockOut
+                onClick={() =>
+                  setShowClockOutPopup(false)
                 }
               >
                 Avbryt
               </button>
 
               <button
-                className={
-                  styles.confirmButton
-                }
+                className={styles.confirmButton}
                 type="button"
-                onClick={
-                  handleClockOut
-                }
+                onClick={confirmClockOut}
               >
-                Stemple ut
+                Godkjenn
               </button>
             </div>
           </div>
