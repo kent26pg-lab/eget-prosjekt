@@ -40,11 +40,14 @@ function App() {
     setCurrentUser(user);
     setIsLoggedIn(true);
 
-    if (user?.role === "admin") {
-      setShowAdminPanel(true);
-    } else {
-      setShowAdminPanel(false);
-    }
+    /*
+      Admin skal også starte på
+      den vanlige arbeidssiden.
+
+      AdminPanel åpnes manuelt.
+    */
+
+    setShowAdminPanel(false);
   }
 
   /* =========================
@@ -62,7 +65,7 @@ function App() {
   }
 
   /* =========================
-     ADMIN
+     ADMIN PANEL
   ========================== */
 
   function openAdminPanel() {
@@ -78,36 +81,60 @@ function App() {
   }
 
   /* =========================
-     RENDER
+     LOGIN SCREEN
+  ========================== */
+
+  if (!isLoggedIn) {
+    return (
+      <ThemeProvider>
+        <Login onLogin={handleLogin} />
+      </ThemeProvider>
+    );
+  }
+
+  /* =========================
+     ADMIN PANEL
+  ========================== */
+
+  if (
+    currentUser?.role === "admin" &&
+    showAdminPanel
+  ) {
+    return (
+      <ThemeProvider>
+        <AdminPanel
+          onBack={closeAdminPanel}
+        />
+      </ThemeProvider>
+    );
+  }
+
+  /* =========================
+     NORMAL APP
+     
+     Dette gjelder både:
+     - ansatte
+     - administrator
   ========================== */
 
   return (
     <ThemeProvider>
-      {!isLoggedIn ? (
-        <Login onLogin={handleLogin} />
-      ) : currentUser?.role === "admin" &&
-        showAdminPanel ? (
-        <AdminPanel
-          onBack={closeAdminPanel}
-        />
-      ) : (
-        <div className="app">
-          <Header />
+      <div className="app">
+        <Header />
 
-          <WelcomeSection />
+        <WelcomeSection />
 
-          <div className="cardsContainer">
-            <ClockCard />
-            <HistoryCard />
-          </div>
-
-          <BottomBar
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            onOpenAdmin={openAdminPanel}
-          />
+        <div className="cardsContainer">
+          <ClockCard />
+          <HistoryCard />
         </div>
-      )}
+
+        <BottomBar
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onOpenAdmin={openAdminPanel}
+        />
+      </div>
     </ThemeProvider>
   );
 }

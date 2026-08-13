@@ -1,85 +1,245 @@
 .bottomBar {
   position: fixed;
-  bottom: 16px;
-  left: 50%;
 
-  transform: translate(-50%, calc(100% + 20px));
+  left: 50%;
+  bottom: 24px;
+
+  z-index: 900;
 
   display: flex;
-  align-items: center;
   justify-content: center;
 
-  width: calc(100% - 32px);
-  max-width: 600px;
+  width: auto;
 
-  padding: 10px;
+  padding: 8px;
 
   box-sizing: border-box;
 
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
+  border-radius: 22px;
 
   background: var(--glass);
 
   box-shadow:
-    0 10px 30px var(--shadow);
+    0 20px 60px var(--shadow);
 
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 
-  z-index: 100;
+  transform: translateX(-50%);
 
   transition:
-    transform 0.35s ease,
-    opacity 0.35s ease;
-
-  opacity: 0.3;
+    min-width 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    border-radius 0.25s ease;
 }
 
-.bottomBar.visible {
-  transform: translate(-50%, 0);
+
+/* =========================
+   LITEN
+========================= */
+
+.collapsed {
+  min-width: 64px;
+
+  opacity: 0.55;
+
+  transform:
+    translateX(-50%)
+    translateY(18px);
+
+  border-radius: 20px;
+}
+
+
+/* =========================
+   HOVER / STOR
+========================= */
+
+.expanded {
+  min-width: 220px;
 
   opacity: 1;
+
+  transform:
+    translateX(-50%)
+    translateY(0);
+
+  border-radius: 20px;
 }
 
-.logout {
+
+/* =========================
+   CONTENT
+========================= */
+
+.barContent {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  gap: 8px;
+  gap: 6px;
+}
 
-  padding: 10px 20px;
+
+/* =========================
+   BUTTON
+========================= */
+
+.barButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  min-width: 48px;
+  min-height: 48px;
+
+  padding: 10px 12px;
 
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: 15px;
 
   background: transparent;
-  color: var(--accent);
+  color: var(--text-primary);
 
-  font-size: 0.9rem;
+  font-family: inherit;
+
+  font-size: 0.85rem;
   font-weight: 600;
+
+  white-space: nowrap;
 
   cursor: pointer;
 
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.2s ease;
 }
 
-.logout:hover {
+.barButton:hover {
   background: var(--theme-hover);
-  border-color: var(--glass-border);
+
+  transform: translateY(-1px);
 }
+
+.barButton:active {
+  transform: scale(0.97);
+}
+
+
+/* =========================
+   ICON
+========================= */
 
 .icon {
-  font-size: 1.1rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 22px;
+  height: 22px;
+
+  flex-shrink: 0;
+
+  color: var(--text-primary);
+
+  font-size: 1.05rem;
 }
+
+
+/* =========================
+   TEKST
+========================= */
+
+.label {
+  max-width: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
+
+  transform: scale(0.9);
+
+  transition:
+    max-width 0.25s ease,
+    opacity 0.2s ease,
+    transform 0.25s ease;
+}
+
+.expanded .label {
+  max-width: 120px;
+
+  opacity: 1;
+
+  transform: scale(1);
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+.logoutButton:hover {
+  background: rgba(
+    200,
+    70,
+    70,
+    0.1
+  );
+}
+
+
+/* =========================
+   FOCUS
+========================= */
+
+.barButton:focus-visible {
+  outline: 2px solid var(--accent);
+
+  outline-offset: 2px;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
 
 @media (max-width: 600px) {
   .bottomBar {
-    transform: translate(-50%, 0);
-    opacity: 1;
+    bottom: 16px;
+
+    padding: 7px;
+
+    border-radius: 19px;
+  }
+
+  .collapsed {
+    transform:
+      translateX(-50%)
+      translateY(12px);
+  }
+
+  .expanded {
+    min-width: 200px;
+
+    transform:
+      translateX(-50%)
+      translateY(0);
+  }
+
+  .barButton {
+    min-height: 44px;
+
+    padding: 9px 11px;
+
+    border-radius: 13px;
+  }
+
+  .icon {
+    width: 20px;
+    height: 20px;
   }
 }
