@@ -1,6 +1,10 @@
+import { useAuth } from "../context/AuthContext";
+
 import styles from "./WelcomeSection.module.css";
 
-function WelcomeSection({ user }) {
+function WelcomeSection() {
+  const { currentUser } = useAuth();
+
   const hour = new Date().getHours();
 
   let greeting;
@@ -16,7 +20,10 @@ function WelcomeSection({ user }) {
   return (
     <section className={styles.welcome}>
       <span className={styles.greeting}>
-        {greeting}, {user?.name}
+        {greeting}
+        {currentUser?.name
+          ? `, ${currentUser.name}`
+          : ""}
       </span>
 
       <h1 className={styles.title}>

@@ -1,62 +1,58 @@
-import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
+
 import styles from "./BottomBar.module.css";
 
-function BottomBar({
-  currentUser,
-  onLogout,
-  onOpenAdmin,
-}) {
-  const [isHovered, setIsHovered] =
-    useState(false);
+function BottomBar({ onOpenAdmin }) {
+  const { currentUser, logout } = useAuth();
+
+  function handleAdmin() {
+    if (currentUser?.role !== "admin") {
+      return;
+    }
+
+    onOpenAdmin?.();
+  }
 
   return (
-    <>
-      <nav
-        className={`${styles.bottomBar} ${
-          isHovered
-            ? styles.expanded
-            : styles.collapsed
-        }`}
-        onMouseEnter={() =>
-          setIsHovered(true)
-        }
-        onMouseLeave={() =>
-          setIsHovered(false)
-        }
-      >
-        <div className={styles.barContent}>
-          {currentUser?.role === "admin" && (
-            <button
-              type="button"
-              className={styles.barButton}
-              onClick={onOpenAdmin}
-            >
-              <span className={styles.icon}>
-                ⚙
-              </span>
+    <nav className={styles.bottomBar}>
+      <div className={styles.barContent}>
 
-              <span className={styles.label}>
-                Adminpanel
-              </span>
-            </button>
-          )}
+        {/* ADMIN */}
 
+        {currentUser?.role === "admin" && (
           <button
             type="button"
-            className={`${styles.barButton} ${styles.logoutButton}`}
-            onClick={onLogout}
+            className={styles.barButton}
+            onClick={handleAdmin}
           >
             <span className={styles.icon}>
-              ↪
+              ⚙
             </span>
 
             <span className={styles.label}>
-              Logg ut
+              Admin
             </span>
           </button>
-        </div>
-      </nav>
-    </>
+        )}
+
+        {/* LOGG UT */}
+
+        <button
+          type="button"
+          className={`${styles.barButton} ${styles.logoutButton}`}
+          onClick={logout}
+        >
+          <span className={styles.icon}>
+            ↪
+          </span>
+
+          <span className={styles.label}>
+            Logg ut
+          </span>
+        </button>
+
+      </div>
+    </nav>
   );
 }
 

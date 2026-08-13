@@ -9,14 +9,12 @@
   display: flex;
   justify-content: center;
 
-  width: auto;
+  width: fit-content;
 
-  padding: 8px;
-
-  box-sizing: border-box;
+  padding: 6px;
 
   border: 1px solid var(--glass-border);
-  border-radius: 22px;
+  border-radius: 20px;
 
   background: var(--glass);
 
@@ -27,46 +25,6 @@
   -webkit-backdrop-filter: blur(24px);
 
   transform: translateX(-50%);
-
-  transition:
-    min-width 0.25s ease,
-    opacity 0.25s ease,
-    transform 0.25s ease,
-    border-radius 0.25s ease;
-}
-
-
-/* =========================
-   LITEN
-========================= */
-
-.collapsed {
-  min-width: 64px;
-
-  opacity: 0.55;
-
-  transform:
-    translateX(-50%)
-    translateY(18px);
-
-  border-radius: 20px;
-}
-
-
-/* =========================
-   HOVER / STOR
-========================= */
-
-.expanded {
-  min-width: 220px;
-
-  opacity: 1;
-
-  transform:
-    translateX(-50%)
-    translateY(0);
-
-  border-radius: 20px;
 }
 
 
@@ -76,10 +34,11 @@
 
 .barContent {
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  gap: 6px;
+  gap: 4px;
 }
 
 
@@ -89,25 +48,30 @@
 
 .barButton {
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  gap: 9px;
+  gap: 7px;
 
-  min-width: 48px;
-  min-height: 48px;
+  width: 44px;
+  min-width: 44px;
 
-  padding: 10px 12px;
+  height: 44px;
+  min-height: 44px;
+
+  padding: 0;
 
   border: 1px solid transparent;
-  border-radius: 15px;
+  border-radius: 14px;
 
   background: transparent;
+
   color: var(--text-primary);
 
   font-family: inherit;
 
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
 
   white-space: nowrap;
@@ -115,18 +79,45 @@
   cursor: pointer;
 
   transition:
+    width 0.25s ease,
+    min-width 0.25s ease,
+    padding 0.25s ease,
     background 0.2s ease,
     transform 0.2s ease;
 }
 
+
+/* =========================
+   HOVER
+========================= */
+
 .barButton:hover {
+  width: 100px;
+  min-width: 100px;
+
+  padding: 0 12px;
+
   background: var(--theme-hover);
 
   transform: translateY(-1px);
 }
 
-.barButton:active {
-  transform: scale(0.97);
+
+/* =========================
+   LOGOUT
+========================= */
+
+.logoutButton:hover {
+  width: 44px;
+  min-width: 44px;
+
+  padding: 0;
+
+  background: transparent;
+
+  box-shadow: none;
+
+  transform: none;
 }
 
 
@@ -136,17 +127,18 @@
 
 .icon {
   display: flex;
+
   align-items: center;
   justify-content: center;
 
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 
   flex-shrink: 0;
 
   color: var(--text-primary);
 
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 
@@ -169,8 +161,12 @@
     transform 0.25s ease;
 }
 
-.expanded .label {
-  max-width: 120px;
+
+/* Bare Admin viser tekst når
+   knappen blir aktiv/hoveret */
+
+.barButton:hover .label {
+  max-width: 80px;
 
   opacity: 1;
 
@@ -179,21 +175,20 @@
 
 
 /* =========================
-   LOGOUT
+   LOGOUT TEKST
 ========================= */
 
-.logoutButton:hover {
-  background: rgba(
-    200,
-    70,
-    70,
-    0.1
-  );
+.logoutButton:hover .label {
+  max-width: 0;
+
+  opacity: 0;
+
+  transform: scale(0.9);
 }
 
 
 /* =========================
-   FOCUS
+   ACTIVE / FOCUS
 ========================= */
 
 .barButton:focus-visible {
@@ -211,35 +206,33 @@
   .bottomBar {
     bottom: 16px;
 
-    padding: 7px;
+    padding: 5px;
 
-    border-radius: 19px;
-  }
-
-  .collapsed {
-    transform:
-      translateX(-50%)
-      translateY(12px);
-  }
-
-  .expanded {
-    min-width: 200px;
-
-    transform:
-      translateX(-50%)
-      translateY(0);
+    border-radius: 17px;
   }
 
   .barButton {
-    min-height: 44px;
+    width: 42px;
+    min-width: 42px;
 
-    padding: 9px 11px;
+    height: 42px;
+    min-height: 42px;
 
-    border-radius: 13px;
+    border-radius: 12px;
+  }
+
+  .barButton:hover {
+    width: 96px;
+    min-width: 96px;
+  }
+
+  .logoutButton:hover {
+    width: 42px;
+    min-width: 42px;
   }
 
   .icon {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
   }
 }

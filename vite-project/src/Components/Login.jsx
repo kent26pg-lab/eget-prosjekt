@@ -1,20 +1,17 @@
 import { useState } from "react";
-import fakeBackend from "../services/fakeBackend";
+
+import { useAuth } from "../context/AuthContext";
 
 import styles from "./Login.module.css";
 
-function Login({ onLogin }) {
-  const [username, setUsername] =
-    useState("");
+function Login() {
+  const { login } = useAuth();
 
-  const [password, setPassword] =
-    useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [error, setError] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -31,72 +28,46 @@ function Login({ onLogin }) {
 
     setLoading(true);
 
-    /*
-      Fake backend håndterer
-      selve innloggingen.
-    */
-
-    const result =
-      fakeBackend.login(
-        username.trim(),
-        password,
-      );
-
-    setLoading(false);
+    const result = login(
+      username.trim(),
+      password,
+    );
 
     if (!result.success) {
       setError(result.error);
-
+      setLoading(false);
       return;
     }
 
     /*
-      Lagre den innloggede brukeren
-      og session-ID slik at appen
-      kan bruke dem videre.
+      AuthContext oppdaterer:
+      - currentUser
+      - isLoggedIn
+      - sessionId
+      - localStorage
+
+      Derfor trenger vi ikke gjøre noe
+      mer her etter vellykket login.
     */
 
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify(result.user),
-    );
-
-    localStorage.setItem(
-      "sessionId",
-      result.sessionId,
-    );
-
-    localStorage.setItem(
-      "isLoggedIn",
-      "true",
-    );
-
-    onLogin(result.user);
+    setLoading(false);
   }
 
   return (
     <div className={styles.loginPage}>
       <div className={styles.loginCard}>
-        {/* =========================
-            HEADER
-        ========================== */}
-
         <div className={styles.header}>
           <span className={styles.eyebrow}>
-            Velkommen
+            Timeføring
           </span>
 
           <h1>Logg inn</h1>
 
           <p>
-            Logg inn for å fortsette til
-            arbeidsområdet ditt.
+            Logg inn for å registrere
+            arbeidstiden din.
           </p>
         </div>
-
-        {/* =========================
-            FORM
-        ========================== */}
 
         <form
           className={styles.form}
@@ -112,9 +83,7 @@ function Login({ onLogin }) {
               type="text"
               value={username}
               onChange={(event) =>
-                setUsername(
-                  event.target.value,
-                )
+                setUsername(event.target.value)
               }
               placeholder="Brukernavn"
               autoComplete="username"
@@ -132,9 +101,7 @@ function Login({ onLogin }) {
               type="password"
               value={password}
               onChange={(event) =>
-                setPassword(
-                  event.target.value,
-                )
+                setPassword(event.target.value)
               }
               placeholder="Passord"
               autoComplete="current-password"
@@ -142,22 +109,11 @@ function Login({ onLogin }) {
             />
           </div>
 
-          {/* =========================
-              ERROR
-          ========================== */}
-
           {error && (
-            <div
-              className={styles.error}
-              role="alert"
-            >
+            <p className={styles.error}>
               {error}
-            </div>
+            </p>
           )}
-
-          {/* =========================
-              LOGIN BUTTON
-          ========================== */}
 
           <button
             className={styles.loginButton}
@@ -169,26 +125,6 @@ function Login({ onLogin }) {
               : "Logg inn"}
           </button>
         </form>
-
-        {/* =========================
-            TEST USERS
-        ========================== */}
-
-        <div className={styles.testUsers}>
-          <span>
-            Testbrukere
-          </span>
-
-          <p>
-            Ansatt: <strong>ola</strong> /
-            1234
-          </p>
-
-          <p>
-            Admin: <strong>admin</strong> /
-            admin123
-          </p>
-        </div>
       </div>
     </div>
   );
