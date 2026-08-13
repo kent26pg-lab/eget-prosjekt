@@ -1,11 +1,37 @@
 :root {
-  --background: #f5f5f5;
-  --text-primary: #1f2937;
+  --background: #fff4cf;
+  --background-secondary: #ffe8a3;
+
+  --text-primary: #3b2a16;
+  --text-secondary: #806b4a;
+
+  --accent: #e5a72f;
+  --accent-light: #ffd86b;
+
+  --glass: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.65);
+
+  --theme-hover: rgba(229, 167, 47, 0.12);
+
+  --shadow: rgba(148, 96, 20, 0.15);
 }
 
 [data-theme="dark"] {
   --background: #151515;
+  --background-secondary: #24201a;
+
   --text-primary: #f5f5f5;
+  --text-secondary: #aaa49a;
+
+  --accent: #f0b84b;
+  --accent-light: #d99a24;
+
+  --glass: rgba(35, 35, 35, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.12);
+
+  --theme-hover: rgba(255, 255, 255, 0.08);
+
+  --shadow: rgba(0, 0, 0, 0.3);
 }
 
 html,
@@ -17,7 +43,7 @@ body {
   color: var(--text-primary);
 
   transition:
-    background 0.3s ease,
+    background 0.4s ease,
     color 0.3s ease;
 }
 
