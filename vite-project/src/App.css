@@ -5,6 +5,18 @@
 html,
 body,
 #root {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body,
+#root {
   width: 100%;
   min-height: 100%;
   margin: 0;
@@ -13,6 +25,8 @@ body,
 html {
   overflow-x: hidden;
 }
+
+
 
 body {
   min-height: 100vh;
