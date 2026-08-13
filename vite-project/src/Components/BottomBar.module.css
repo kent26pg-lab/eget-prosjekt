@@ -1,0 +1,85 @@
+.bottomBar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+
+  transform: translate(-50%, calc(100% + 20px));
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: calc(100% - 32px);
+  max-width: 600px;
+
+  padding: 10px;
+
+  box-sizing: border-box;
+
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+
+  background: var(--glass);
+
+  box-shadow:
+    0 10px 30px var(--shadow);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  z-index: 100;
+
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease;
+
+  opacity: 0.3;
+}
+
+.bottomBar.visible {
+  transform: translate(-50%, 0);
+
+  opacity: 1;
+}
+
+.logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 10px 20px;
+
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  background: transparent;
+  color: var(--accent);
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.logout:hover {
+  background: var(--theme-hover);
+  border-color: var(--glass-border);
+}
+
+.icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .bottomBar {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

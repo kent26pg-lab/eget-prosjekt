@@ -4,6 +4,7 @@ import { ThemeProvider } from "./Components/ThemeProvider";
 import Header from "./Components/Header";
 import WelcomeSection from "./Components/WelcomeSection";
 import Login from "./Components/Login";
+import BottomBar from "./Components/BottomBar";
 
 import "./App.css";
 
@@ -16,6 +17,11 @@ function App() {
     setIsLoggedIn(true);
   }
 
+  function handleLogout() {
+    localStorage.removeItem("isLoggedIn");
+    setIsLoggedIn(false);
+  }
+
   return (
     <ThemeProvider>
       {!isLoggedIn ? (
@@ -23,7 +29,10 @@ function App() {
       ) : (
         <div className="app">
           <Header />
+
           <WelcomeSection />
+
+          <BottomBar onLogout={handleLogout} />
         </div>
       )}
     </ThemeProvider>
